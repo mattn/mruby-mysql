@@ -54,7 +54,7 @@ static void
 mrb_mysql_resultset_free(mrb_state *mrb, void *p) {
   mrb_mysql_resultset* rs = (mrb_mysql_resultset*) p;
   if (rs->bind) {
-    int i;
+    size_t i;
     for (i = 0; i < rs->res->field_count; i++)
       free(rs->bind[i].buffer);
   }
@@ -79,9 +79,12 @@ mrb_mysql_database_init(mrb_state *mrb, mrb_value self) {
   mrb_value arg_port = mrb_fixnum_value(0);
   mrb_value arg_sock = mrb_nil_value();
   mrb_value arg_flags = mrb_fixnum_value(0);
+  MYSQL* mdb;
+  mrb_mysql_database* db;
+
   mrb_get_args(mrb, "SSSS|i|S|i", &arg_host, &arg_user, &arg_passwd, &arg_dbname, &arg_port, &arg_sock, &arg_flags);
 
-  MYSQL* mdb = mysql_init(NULL);
+  mdb = mysql_init(NULL);
   if (!mysql_real_connect(
     mdb,
     RSTRING_PTR(arg_host),
@@ -95,8 +98,7 @@ mrb_mysql_database_init(mrb_state *mrb, mrb_value self) {
   }
   mysql_options(mdb, MYSQL_SET_CHARSET_NAME, "utf-8");
 
-  mrb_mysql_database* db = (mrb_mysql_database*)
-    malloc(sizeof(mrb_mysql_database));
+  db = (mrb_mysql_database*) malloc(sizeof(mrb_mysql_database));
   if (!db) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "can't memory alloc");
   }
@@ -146,13 +148,13 @@ bind_params(mrb_state* mrb, MYSQL_STMT* stmt, int argc, mrb_value* argv, int col
       break;
     }
   }
-  int r = mysql_stmt_bind_param(stmt, params);
-  return r == 0 ? NULL : mysql_stmt_error(stmt);
+  return mysql_stmt_bind_param(stmt, params) == 0 ?
+    NULL : mysql_stmt_error(stmt);
 }
 
 static void
 bind_to_cols(mrb_state* mrb, mrb_value cols, MYSQL_RES* res, MYSQL_FIELD* flds, MYSQL_BIND* results) {
-  int i;
+  size_t i;
   ARENA_SAVE;
   mrb_ary_clear(mrb, cols);
   for (i = 0; i < res->field_count; i++) {
@@ -173,7 +175,7 @@ bind_to_cols(mrb_state* mrb, mrb_value cols, MYSQL_RES* res, MYSQL_FIELD* flds, 
         mrb_ary_push(mrb, cols, mrb_fixnum_value(*(short*)results[i].buffer));
         break;
     	case MYSQL_TYPE_LONGLONG:
-        mrb_ary_push(mrb, cols, mrb_fixnum_value(*(long long int*)results[i].buffer));
+        mrb_ary_push(mrb, cols, mrb_fixnum_value((mrb_int) *(long long int*)results[i].buffer));
         break;
     	case MYSQL_TYPE_FLOAT:
         mrb_ary_push(mrb, cols, mrb_float_value(*(float*)results[i].buffer));
@@ -204,35 +206,49 @@ mrb_mysql_database_execute(mrb_state *mrb, mrb_value self) {
   int argc = 0;
   mrb_value* argv = NULL;
   mrb_value b = mrb_nil_value();
+  mrb_value value_context;
+  mrb_mysql_database* db = NULL;
+  mrb_value query;
+  char* sql;
+  int len;
+  MYSQL_STMT* stmt;
+  MYSQL_BIND* params = NULL;
+  MYSQL_RES* res;
+  MYSQL_FIELD* flds;
+  mrb_value fields;
+  MYSQL_BIND* results;
+  size_t i;
+  mrb_value cols;
+  mrb_value args[2];
+
   mrb_get_args(mrb, "&*", &b, &argv, &argc);
 
   if (argc == 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid argument");
   }
-  mrb_value value_context = mrb_iv_get(mrb, self, mrb_intern(mrb, "context"));
-  mrb_mysql_database* db = NULL;
+  value_context = mrb_iv_get(mrb, self, mrb_intern(mrb, "context"));
   Data_Get_Struct(mrb, value_context, &mrb_mysql_database_type, db);
   if (!db) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid argument");
   }
 
-  mrb_value query = argv[0];
-  char* sql = RSTRING_PTR(query);
-  int len = RSTRING_LEN(query);
+  query = argv[0];
+  sql = RSTRING_PTR(query);
+  len = RSTRING_LEN(query);
 
-  MYSQL_STMT* stmt = mysql_stmt_init(db->db);
+  stmt = mysql_stmt_init(db->db);
   if (mysql_stmt_prepare(stmt, sql, len) > 0) {
     mrb_raise(mrb, E_RUNTIME_ERROR, mysql_error(db->db));
   }
 
-  MYSQL_BIND* params = NULL;
   if (argc > 1) {
+    const char* error;
     int columns = mysql_stmt_param_count(stmt);
     params = (MYSQL_BIND*) malloc(columns * sizeof(MYSQL_BIND));
     if (!params) {
       mrb_raise(mrb, E_RUNTIME_ERROR, "can't memory alloc");
     }
-    const char* error = bind_params(mrb, stmt, argc-1, &argv[1], columns, params);
+    error = bind_params(mrb, stmt, argc-1, &argv[1], columns, params);
     if (error) {
       free(params);
       mysql_stmt_close(stmt);
@@ -248,10 +264,7 @@ mrb_mysql_database_execute(mrb_state *mrb, mrb_value self) {
   if (params)
     free(params);
 
-  MYSQL_RES* res = mysql_stmt_result_metadata(stmt);
-  MYSQL_FIELD* flds = NULL;
-  mrb_value fields;
-  int i;
+  res = mysql_stmt_result_metadata(stmt);
   if (res) {
     flds = mysql_fetch_field(res);
     fields = mrb_ary_new(mrb);
@@ -261,7 +274,7 @@ mrb_mysql_database_execute(mrb_state *mrb, mrb_value self) {
     }
   }
 
-  MYSQL_BIND* results = (MYSQL_BIND*) malloc(res->field_count * sizeof(MYSQL_BIND));
+  results = (MYSQL_BIND*) malloc(res->field_count * sizeof(MYSQL_BIND));
   memset(results, 0, res->field_count * sizeof(MYSQL_BIND));
   for (i = 0; i < res->field_count; i++) {
     results[i].buffer_type = flds[i].type;
@@ -280,6 +293,9 @@ mrb_mysql_database_execute(mrb_state *mrb, mrb_value self) {
   }
 
   if (mrb_nil_p(b)) {
+    struct RClass* _class_mysql;
+    struct RClass* _class_mysql_resultset;
+    mrb_value c;
     mrb_mysql_resultset* rs = (mrb_mysql_resultset*)
       malloc(sizeof(mrb_mysql_resultset));
     if (!rs) {
@@ -293,9 +309,9 @@ mrb_mysql_database_execute(mrb_state *mrb, mrb_value self) {
     rs->flds = flds;
     rs->bind = results;
 
-    struct RClass* _class_mysql = mrb_class_get(mrb, "MySQL");
-    struct RClass* _class_mysql_resultset = mrb_class_ptr(mrb_const_get(mrb, mrb_obj_value(_class_mysql), mrb_intern(mrb, "ResultSet")));
-    mrb_value c = mrb_class_new_instance(mrb, 0, NULL, _class_mysql_resultset);
+    _class_mysql = mrb_class_get(mrb, "MySQL");
+    _class_mysql_resultset = mrb_class_ptr(mrb_const_get(mrb, mrb_obj_value(_class_mysql), mrb_intern(mrb, "ResultSet")));
+    c = mrb_class_new_instance(mrb, 0, NULL, _class_mysql_resultset);
     mrb_iv_set(mrb, c, mrb_intern(mrb, "context"), mrb_obj_value(
       Data_Wrap_Struct(mrb, mrb->object_class,
       &mrb_mysql_resultset_type, (void*) rs)));
@@ -305,8 +321,7 @@ mrb_mysql_database_execute(mrb_state *mrb, mrb_value self) {
     return c;
   }
 
-  mrb_value cols = mrb_ary_new(mrb);
-  mrb_value args[2];
+  cols = mrb_ary_new(mrb);
   args[0] = cols;
   args[1] = fields;
   while (mysql_stmt_fetch(stmt) == 0) {
@@ -331,35 +346,42 @@ static mrb_value
 mrb_mysql_database_execute_batch(mrb_state *mrb, mrb_value self) {
   int argc = 0;
   mrb_value *argv;
+  mrb_value value_context;
+  mrb_mysql_database* db = NULL;
+  mrb_value query;
+  char* sql;
+  int len;
+  MYSQL_STMT* stmt;
+  MYSQL_BIND* params = NULL;
+
   mrb_get_args(mrb, "*", &argv, &argc);
 
   if (argc == 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid argument");
   }
-  mrb_value value_context = mrb_iv_get(mrb, self, mrb_intern(mrb, "context"));
-  mrb_mysql_database* db = NULL;
+  value_context = mrb_iv_get(mrb, self, mrb_intern(mrb, "context"));
   Data_Get_Struct(mrb, value_context, &mrb_mysql_database_type, db);
   if (!db) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid argument");
   }
 
-  mrb_value query = argv[0];
-  char* sql = RSTRING_PTR(query);
-  int len = RSTRING_LEN(query);
+  query = argv[0];
+  sql = RSTRING_PTR(query);
+  len = RSTRING_LEN(query);
 
-  MYSQL_STMT* stmt = mysql_stmt_init(db->db);
+  stmt = mysql_stmt_init(db->db);
   if (mysql_stmt_prepare(stmt, sql, len) > 0) {
     mrb_raise(mrb, E_RUNTIME_ERROR, mysql_error(db->db));
   }
 
-  MYSQL_BIND* params = NULL;
   if (argc > 1) {
+    const char* error;
     int columns = mysql_stmt_param_count(stmt);
     params = (MYSQL_BIND*) malloc(columns * sizeof(MYSQL_BIND));
     if (!params) {
       mrb_raise(mrb, E_RUNTIME_ERROR, "can't memory alloc");
     }
-    const char* error = bind_params(mrb, stmt, argc-1, &argv[1], columns, params);
+    error = bind_params(mrb, stmt, argc-1, &argv[1], columns, params);
     if (error) {
       free(params);
       mysql_stmt_close(stmt);
@@ -401,7 +423,7 @@ mrb_mysql_database_last_insert_rowid(mrb_state *mrb, mrb_value self) {
   if (!db) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid argument");
   }
-  return mrb_fixnum_value(mysql_insert_id(db->db));
+  return mrb_fixnum_value((mrb_int) mysql_insert_id(db->db));
 }
 
 static mrb_value
@@ -412,7 +434,7 @@ mrb_mysql_database_changes(mrb_state *mrb, mrb_value self) {
   if (!db) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid argument");
   }
-  return mrb_fixnum_value(mysql_affected_rows(db->db));
+  return mrb_fixnum_value((mrb_int) mysql_affected_rows(db->db));
 }
 
 /*
@@ -478,6 +500,8 @@ static mrb_value
 mrb_mysql_resultset_next(mrb_state *mrb, mrb_value self) {
   mrb_value value_context = mrb_iv_get(mrb, self, mrb_intern(mrb, "context"));
   mrb_mysql_resultset* rs = NULL;
+  mrb_value cols;
+  int ai;
   Data_Get_Struct(mrb, value_context, &mrb_mysql_resultset_type, rs);
   if (!rs) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid argument");
@@ -492,10 +516,10 @@ mrb_mysql_resultset_next(mrb_state *mrb, mrb_value self) {
     mrb_iv_set(mrb, self, mrb_intern(mrb, "eof"), mrb_true_value());
     return mrb_nil_value();
   }
-  ARENA_SAVE;
-  mrb_value cols = mrb_ary_new(mrb);
+  ai = mrb_gc_arena_save(mrb);
+  cols = mrb_ary_new(mrb);
   bind_to_cols(mrb, cols, rs->res, rs->flds, rs->bind);
-  ARENA_RESTORE;
+  mrb_gc_arena_restore(mrb, ai);
   return cols;
 }
 
@@ -526,10 +550,14 @@ mrb_mysql_resultset_eof(mrb_state *mrb, mrb_value self) {
 
 void
 mrb_mruby_mysql_gem_init(mrb_state* mrb) {
+  struct RClass *_class_mysql;
+  struct RClass *_class_mysql_database;
+  struct RClass* _class_mysql_resultset;
   ARENA_SAVE;
-  struct RClass *_class_mysql = mrb_define_module(mrb, "MySQL");
 
-  struct RClass *_class_mysql_database = mrb_define_class_under(mrb, _class_mysql, "Database", mrb->object_class);
+  _class_mysql = mrb_define_module(mrb, "MySQL");
+
+  _class_mysql_database = mrb_define_class_under(mrb, _class_mysql, "Database", mrb->object_class);
   mrb_define_method(mrb, _class_mysql_database, "initialize", mrb_mysql_database_init, ARGS_OPT(1));
   mrb_define_method(mrb, _class_mysql_database, "execute", mrb_mysql_database_execute, ARGS_ANY());
   mrb_define_method(mrb, _class_mysql_database, "execute_batch", mrb_mysql_database_execute_batch, ARGS_ANY());
@@ -541,7 +569,7 @@ mrb_mruby_mysql_gem_init(mrb_state* mrb) {
   mrb_define_method(mrb, _class_mysql_database, "rollback", mrb_mysql_database_rollback, ARGS_NONE());
   ARENA_RESTORE;
 
-  struct RClass* _class_mysql_resultset = mrb_define_class_under(mrb, _class_mysql, "ResultSet", mrb->object_class);
+  _class_mysql_resultset = mrb_define_class_under(mrb, _class_mysql, "ResultSet", mrb->object_class);
   mrb_define_method(mrb, _class_mysql_resultset, "next", mrb_mysql_resultset_next, ARGS_NONE());
   mrb_define_method(mrb, _class_mysql_resultset, "close", mrb_mysql_resultset_close, ARGS_NONE());
   mrb_define_method(mrb, _class_mysql_resultset, "fields", mrb_mysql_resultset_fields, ARGS_NONE());
