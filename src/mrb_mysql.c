@@ -265,13 +265,14 @@ mrb_mysql_database_execute(mrb_state *mrb, mrb_value self) {
     free(params);
 
   res = mysql_stmt_result_metadata(stmt);
-  if (res) {
-    flds = mysql_fetch_field(res);
-    fields = mrb_ary_new(mrb);
-    for (i = 0; i < res->field_count; i++) {
-      const char* name = flds[i].name;
-      mrb_ary_push(mrb, fields, mrb_str_new_cstr(mrb, name));
-    }
+  if (!res) {
+    return mrb_nil_value();
+  }
+  flds = mysql_fetch_field(res);
+  fields = mrb_ary_new(mrb);
+  for (i = 0; i < res->field_count; i++) {
+    const char* name = flds[i].name;
+    mrb_ary_push(mrb, fields, mrb_str_new_cstr(mrb, name));
   }
 
   results = (MYSQL_BIND*) malloc(res->field_count * sizeof(MYSQL_BIND));
