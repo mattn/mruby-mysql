@@ -76,9 +76,9 @@ static const struct mrb_data_type mrb_mysql_resultset_type = {
 static mrb_value
 mrb_mysql_database_init(mrb_state *mrb, mrb_value self) {
   mrb_value arg_host, arg_user, arg_passwd, arg_dbname;
-  mrb_value arg_port = mrb_fixnum_value(0);
+  mrb_int arg_port = 0;
   mrb_value arg_sock = mrb_nil_value();
-  mrb_value arg_flags = mrb_fixnum_value(0);
+  mrb_int arg_flags = 0;
   MYSQL* mdb;
   mrb_mysql_database* db;
 
@@ -91,9 +91,9 @@ mrb_mysql_database_init(mrb_state *mrb, mrb_value self) {
     RSTRING_PTR(arg_user),
     RSTRING_PTR(arg_passwd),
     RSTRING_PTR(arg_dbname),
-    mrb_fixnum(arg_port),
+    arg_port,
     mrb_nil_p(arg_sock) ? NULL : RSTRING_PTR(arg_sock),
-    mrb_fixnum(arg_flags))) {
+    arg_flags)) {
     mrb_raise(mrb, E_RUNTIME_ERROR, mysql_error(mdb));
   }
   mysql_options(mdb, MYSQL_SET_CHARSET_NAME, "utf-8");
