@@ -178,10 +178,10 @@ bind_to_cols(mrb_state* mrb, mrb_value cols, MYSQL_RES* res, MYSQL_FIELD* flds, 
         mrb_ary_push(mrb, cols, mrb_fixnum_value((mrb_int) *(long long int*)results[i].buffer));
         break;
     	case MYSQL_TYPE_FLOAT:
-        mrb_ary_push(mrb, cols, mrb_float_value(*(float*)results[i].buffer));
+        mrb_ary_push(mrb, cols, mrb_float_value(mrb, *(float*)results[i].buffer));
         break;
     	case MYSQL_TYPE_DOUBLE:
-        mrb_ary_push(mrb, cols, mrb_float_value(*(double*)results[i].buffer));
+        mrb_ary_push(mrb, cols, mrb_float_value(mrb, *(double*)results[i].buffer));
         break;
     	case MYSQL_TYPE_BLOB:
         mrb_ary_push(mrb, cols, mrb_str_new(mrb, results[i].buffer, results[i].length_value));
