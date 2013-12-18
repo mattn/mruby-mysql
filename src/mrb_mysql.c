@@ -105,7 +105,7 @@ mrb_mysql_database_init(mrb_state *mrb, mrb_value self) {
   memset(db, 0, sizeof(mrb_mysql_database));
   db->mrb = mrb;
   db->db = mdb;
-  mrb_iv_set(mrb, self, mrb_intern(mrb, "context"), mrb_obj_value(
+  mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "context"), mrb_obj_value(
     Data_Wrap_Struct(mrb, mrb->object_class,
     &mrb_mysql_database_type, (void*) db)));
   return self;
@@ -226,7 +226,7 @@ mrb_mysql_database_execute(mrb_state *mrb, mrb_value self) {
   if (argc == 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid argument");
   }
-  value_context = mrb_iv_get(mrb, self, mrb_intern(mrb, "context"));
+  value_context = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "context"));
   Data_Get_Struct(mrb, value_context, &mrb_mysql_database_type, db);
   if (!db) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid argument");
@@ -311,14 +311,14 @@ mrb_mysql_database_execute(mrb_state *mrb, mrb_value self) {
     rs->bind = results;
 
     _class_mysql = mrb_class_get(mrb, "MySQL");
-    _class_mysql_resultset = mrb_class_ptr(mrb_const_get(mrb, mrb_obj_value(_class_mysql), mrb_intern(mrb, "ResultSet")));
+    _class_mysql_resultset = mrb_class_ptr(mrb_const_get(mrb, mrb_obj_value(_class_mysql), mrb_intern_lit(mrb, "ResultSet")));
     c = mrb_class_new_instance(mrb, 0, NULL, _class_mysql_resultset);
-    mrb_iv_set(mrb, c, mrb_intern(mrb, "context"), mrb_obj_value(
+    mrb_iv_set(mrb, c, mrb_intern_lit(mrb, "context"), mrb_obj_value(
       Data_Wrap_Struct(mrb, mrb->object_class,
       &mrb_mysql_resultset_type, (void*) rs)));
-    mrb_iv_set(mrb, c, mrb_intern(mrb, "fields"), fields);
-    mrb_iv_set(mrb, c, mrb_intern(mrb, "db"), self);
-    mrb_iv_set(mrb, c, mrb_intern(mrb, "eof"), mrb_false_value());
+    mrb_iv_set(mrb, c, mrb_intern_lit(mrb, "fields"), fields);
+    mrb_iv_set(mrb, c, mrb_intern_lit(mrb, "db"), self);
+    mrb_iv_set(mrb, c, mrb_intern_lit(mrb, "eof"), mrb_false_value());
     return c;
   }
 
@@ -360,7 +360,7 @@ mrb_mysql_database_execute_batch(mrb_state *mrb, mrb_value self) {
   if (argc == 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid argument");
   }
-  value_context = mrb_iv_get(mrb, self, mrb_intern(mrb, "context"));
+  value_context = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "context"));
   Data_Get_Struct(mrb, value_context, &mrb_mysql_database_type, db);
   if (!db) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid argument");
@@ -403,7 +403,7 @@ mrb_mysql_database_execute_batch(mrb_state *mrb, mrb_value self) {
 
 static mrb_value
 mrb_mysql_database_close(mrb_state *mrb, mrb_value self) {
-  mrb_value value_context = mrb_iv_get(mrb, self, mrb_intern(mrb, "context"));
+  mrb_value value_context = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "context"));
   mrb_mysql_database* db = NULL;
   Data_Get_Struct(mrb, value_context, &mrb_mysql_database_type, db);
   if (!db) {
@@ -418,7 +418,7 @@ mrb_mysql_database_close(mrb_state *mrb, mrb_value self) {
 
 static mrb_value
 mrb_mysql_database_last_insert_rowid(mrb_state *mrb, mrb_value self) {
-  mrb_value value_context = mrb_iv_get(mrb, self, mrb_intern(mrb, "context"));
+  mrb_value value_context = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "context"));
   mrb_mysql_database* db = NULL;
   Data_Get_Struct(mrb, value_context, &mrb_mysql_database_type, db);
   if (!db) {
@@ -429,7 +429,7 @@ mrb_mysql_database_last_insert_rowid(mrb_state *mrb, mrb_value self) {
 
 static mrb_value
 mrb_mysql_database_changes(mrb_state *mrb, mrb_value self) {
-  mrb_value value_context = mrb_iv_get(mrb, self, mrb_intern(mrb, "context"));
+  mrb_value value_context = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "context"));
   mrb_mysql_database* db = NULL;
   Data_Get_Struct(mrb, value_context, &mrb_mysql_database_type, db);
   if (!db) {
@@ -441,7 +441,7 @@ mrb_mysql_database_changes(mrb_state *mrb, mrb_value self) {
 /*
 static mrb_value
 mrb_mysql_database_exec(mrb_state *mrb, mrb_value self, const char* query) {
-  mrb_value value_context = mrb_iv_get(mrb, self, mrb_intern(mrb, "context"));
+  mrb_value value_context = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "context"));
   mrb_mysql_database* db = NULL;
   Data_Get_Struct(mrb, value_context, &mrb_mysql_database_type, db);
   if (!db) {
@@ -457,7 +457,7 @@ mrb_mysql_database_exec(mrb_state *mrb, mrb_value self, const char* query) {
 
 static mrb_value
 mrb_mysql_database_transaction(mrb_state *mrb, mrb_value self) {
-  mrb_value value_context = mrb_iv_get(mrb, self, mrb_intern(mrb, "context"));
+  mrb_value value_context = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "context"));
   mrb_mysql_database* db = NULL;
   Data_Get_Struct(mrb, value_context, &mrb_mysql_database_type, db);
   if (!db) {
@@ -471,7 +471,7 @@ mrb_mysql_database_transaction(mrb_state *mrb, mrb_value self) {
 
 static mrb_value
 mrb_mysql_database_commit(mrb_state *mrb, mrb_value self) {
-  mrb_value value_context = mrb_iv_get(mrb, self, mrb_intern(mrb, "context"));
+  mrb_value value_context = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "context"));
   mrb_mysql_database* db = NULL;
   Data_Get_Struct(mrb, value_context, &mrb_mysql_database_type, db);
   if (!db) {
@@ -485,7 +485,7 @@ mrb_mysql_database_commit(mrb_state *mrb, mrb_value self) {
 
 static mrb_value
 mrb_mysql_database_rollback(mrb_state *mrb, mrb_value self) {
-  mrb_value value_context = mrb_iv_get(mrb, self, mrb_intern(mrb, "context"));
+  mrb_value value_context = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "context"));
   mrb_mysql_database* db = NULL;
   Data_Get_Struct(mrb, value_context, &mrb_mysql_database_type, db);
   if (!db) {
@@ -499,7 +499,7 @@ mrb_mysql_database_rollback(mrb_state *mrb, mrb_value self) {
 
 static mrb_value
 mrb_mysql_resultset_next(mrb_state *mrb, mrb_value self) {
-  mrb_value value_context = mrb_iv_get(mrb, self, mrb_intern(mrb, "context"));
+  mrb_value value_context = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "context"));
   mrb_mysql_resultset* rs = NULL;
   mrb_value cols;
   int ai;
@@ -507,14 +507,14 @@ mrb_mysql_resultset_next(mrb_state *mrb, mrb_value self) {
   if (!rs) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid argument");
   }
-  if (mrb_type(mrb_iv_get(mrb, self, mrb_intern(mrb, "eof"))) == MRB_TT_TRUE) {
+  if (mrb_type(mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "eof"))) == MRB_TT_TRUE) {
     return mrb_nil_value();
   }
   if (mysql_stmt_fetch(rs->stmt) != 0) {
     if (mysql_stmt_errno(rs->stmt) != 0) {
       mrb_raise(mrb, E_RUNTIME_ERROR, mysql_stmt_error(rs->stmt));
     }
-    mrb_iv_set(mrb, self, mrb_intern(mrb, "eof"), mrb_true_value());
+    mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "eof"), mrb_true_value());
     return mrb_nil_value();
   }
   ai = mrb_gc_arena_save(mrb);
@@ -526,7 +526,7 @@ mrb_mysql_resultset_next(mrb_state *mrb, mrb_value self) {
 
 static mrb_value
 mrb_mysql_resultset_close(mrb_state *mrb, mrb_value self) {
-  mrb_value value_context = mrb_iv_get(mrb, self, mrb_intern(mrb, "context"));
+  mrb_value value_context = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "context"));
   mrb_mysql_resultset* rs = NULL;
   Data_Get_Struct(mrb, value_context, &mrb_mysql_resultset_type, rs);
   if (!rs) {
@@ -541,12 +541,12 @@ mrb_mysql_resultset_close(mrb_state *mrb, mrb_value self) {
 
 static mrb_value
 mrb_mysql_resultset_fields(mrb_state *mrb, mrb_value self) {
-  return mrb_iv_get(mrb, self, mrb_intern(mrb, "fields"));
+  return mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "fields"));
 }
 
 static mrb_value
 mrb_mysql_resultset_eof(mrb_state *mrb, mrb_value self) {
-  return mrb_iv_get(mrb, self, mrb_intern(mrb, "eof"));
+  return mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "eof"));
 }
 
 void
