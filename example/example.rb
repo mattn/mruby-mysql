@@ -4,7 +4,7 @@ db = MySQL::Database.new('localhost', 'root', '', 'foo')
 begin
   db.execute_batch 'drop table foo'
   db.execute_batch 'drop table bar'
-rescue RuntimeError
+rescue ArgumentError
 ensure
   db.execute_batch 'create table foo(id int primary key, text text, f float)'
   db.execute_batch 'create table bar(id int primary key, text text, f float)'
