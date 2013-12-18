@@ -17,7 +17,7 @@
 #if 1
 #define ARENA_SAVE \
   int ai = mrb_gc_arena_save(mrb); \
-  if (ai == MRB_ARENA_SIZE) { \
+  if (ai == MRB_GC_ARENA_SIZE) { \
     mrb_raise(mrb, E_RUNTIME_ERROR, "arena overflow"); \
   }
 #define ARENA_RESTORE \
