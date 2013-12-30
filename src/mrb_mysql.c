@@ -184,6 +184,7 @@ bind_to_cols(mrb_state* mrb, mrb_value cols, MYSQL_RES* res, MYSQL_FIELD* flds, 
         mrb_ary_push(mrb, cols, mrb_float_value(mrb, *(double*)results[i].buffer));
         break;
     	case MYSQL_TYPE_BLOB:
+    	case MYSQL_TYPE_VAR_STRING:
         mrb_ary_push(mrb, cols, mrb_str_new(mrb, results[i].buffer, results[i].length_value));
         break;
     	case MYSQL_TYPE_STRING:
@@ -279,7 +280,7 @@ mrb_mysql_database_execute(mrb_state *mrb, mrb_value self) {
   memset(results, 0, res->field_count * sizeof(MYSQL_BIND));
   for (i = 0; i < res->field_count; i++) {
     results[i].buffer_type = flds[i].type;
-    if (flds[i].type == MYSQL_TYPE_STRING) {
+    if (IS_LONGDATA(flds[i].type)) {
       results[i].buffer = malloc(flds[i].length);
       results[i].buffer_length = flds[i].length;
     } else {
