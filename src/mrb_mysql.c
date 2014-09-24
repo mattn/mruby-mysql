@@ -310,7 +310,7 @@ mrb_mysql_database_execute(mrb_state *mrb, mrb_value self) {
     rs->flds = flds;
     rs->bind = results;
 
-    _class_mysql = mrb_class_get(mrb, "MySQL");
+    _class_mysql = mrb_module_get(mrb, "MySQL");
     _class_mysql_resultset = mrb_class_ptr(mrb_const_get(mrb, mrb_obj_value(_class_mysql), mrb_intern_lit(mrb, "ResultSet")));
     c = mrb_class_new_instance(mrb, 0, NULL, _class_mysql_resultset);
     mrb_iv_set(mrb, c, mrb_intern_lit(mrb, "context"), mrb_obj_value(
