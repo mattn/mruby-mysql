@@ -46,6 +46,7 @@ mrb_mysql_database_free(mrb_state *mrb, void *p) {
   mrb_mysql_database* db = (mrb_mysql_database*) p;
   if (db->db) {
     mysql_close(db->db);
+    db->db = NULL;
   }
   free(db);
 }
@@ -166,7 +167,7 @@ bind_to_cols(mrb_state* mrb, mrb_value cols, MYSQL_RES* res, MYSQL_FIELD* flds, 
         mrb_ary_push(mrb, cols, mrb_fixnum_value(*(int*)results[i].buffer));
         break;
       case MYSQL_TYPE_LONG:
-        mrb_ary_push(mrb, cols, mrb_fixnum_value(*(long*)results[i].buffer));
+        mrb_ary_push(mrb, cols, mrb_fixnum_value((mrb_int)*(long*)results[i].buffer));
         break;
       case MYSQL_TYPE_INT24:
         mrb_ary_push(mrb, cols, mrb_fixnum_value(*(int*)results[i].buffer));
@@ -207,8 +208,8 @@ bind_to_cols(mrb_state* mrb, mrb_value cols, MYSQL_RES* res, MYSQL_FIELD* flds, 
         {
           MYSQL_TIME ts;
           struct RClass* _class_time;
-          mrb_value args[7];
-          memcpy(&ts, results[i].buffer, results[i].length_value);
+          mrb_value args[6];
+          memcpy(&ts, results[i].buffer, sizeof(ts));
           _class_time = mrb_class_get(mrb, "Time");
           args[0] = mrb_fixnum_value(ts.year);
           args[1] = mrb_fixnum_value(ts.month);
@@ -216,7 +217,7 @@ bind_to_cols(mrb_state* mrb, mrb_value cols, MYSQL_RES* res, MYSQL_FIELD* flds, 
           args[3] = mrb_fixnum_value(ts.hour);
           args[4] = mrb_fixnum_value(ts.minute);
           args[5] = mrb_fixnum_value(ts.second);
-          mrb_ary_push(mrb, cols, mrb_class_new_instance(mrb, 7, args, _class_time));
+          mrb_ary_push(mrb, cols, mrb_class_new_instance(mrb, 6, args, _class_time));
         }
         break;
       default:
@@ -306,14 +307,31 @@ mrb_mysql_database_execute(mrb_state *mrb, mrb_value self) {
   memset(results, 0, res->field_count * sizeof(MYSQL_BIND));
   for (i = 0; i < res->field_count; i++) {
     results[i].buffer_type = flds[i].type;
-    if (flds[i].type == MYSQL_TYPE_STRING) {
-      results[i].buffer = malloc(flds[i].length);
-      results[i].buffer_length = flds[i].length;
-    } else {
+    switch (flds[i].type) {
+    case MYSQL_TYPE_MEDIUM_BLOB:
+    case MYSQL_TYPE_LONG_BLOB:
+    case MYSQL_TYPE_BLOB:
+    case MYSQL_TYPE_BIT:
+    case MYSQL_TYPE_NEWDECIMAL:
+    case MYSQL_TYPE_VAR_STRING:
+    case MYSQL_TYPE_STRING:
+      results[i].buffer = malloc(flds[i].max_length);
+      results[i].buffer_length = flds[i].max_length;
+      break;
+    case MYSQL_TYPE_TIME:
+    case MYSQL_TYPE_DATE:
+    case MYSQL_TYPE_DATETIME:
+    case MYSQL_TYPE_TIMESTAMP:
+      results[i].buffer = malloc(sizeof(MYSQL_TIME));
+      results[i].buffer_length = sizeof(MYSQL_TIME);
+      break;
+    default:
       results[i].buffer = malloc(sizeof(long long int));
       results[i].buffer_length = sizeof(long long int);
+      break;
     }
-    results[i].length = &results[i].length_value;
+    memset(results[i].buffer, 0, results[i].buffer_length);
+    results[i].length = 0;
     results[i].is_null = &results[i].is_null_value;
   }
   if (mysql_stmt_bind_result(stmt, results) != 0) {
