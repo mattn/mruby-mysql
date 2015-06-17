@@ -168,29 +168,56 @@ bind_to_cols(mrb_state* mrb, mrb_value cols, MYSQL_RES* res, MYSQL_FIELD* flds, 
       case MYSQL_TYPE_LONG:
         mrb_ary_push(mrb, cols, mrb_fixnum_value(*(long*)results[i].buffer));
         break;
-    	case MYSQL_TYPE_TINY:
+      case MYSQL_TYPE_INT24:
+        mrb_ary_push(mrb, cols, mrb_fixnum_value(*(int*)results[i].buffer));
+        break;
+      case MYSQL_TYPE_TINY:
         mrb_ary_push(mrb, cols, mrb_fixnum_value(*(char*)results[i].buffer));
         break;
-    	case MYSQL_TYPE_SHORT:
+      case MYSQL_TYPE_SHORT:
         mrb_ary_push(mrb, cols, mrb_fixnum_value(*(short*)results[i].buffer));
         break;
-    	case MYSQL_TYPE_LONGLONG:
+      case MYSQL_TYPE_LONGLONG:
         mrb_ary_push(mrb, cols, mrb_fixnum_value((mrb_int) *(long long int*)results[i].buffer));
         break;
-    	case MYSQL_TYPE_FLOAT:
+      case MYSQL_TYPE_FLOAT:
         mrb_ary_push(mrb, cols, mrb_float_value(mrb, *(float*)results[i].buffer));
         break;
-    	case MYSQL_TYPE_DOUBLE:
+      case MYSQL_TYPE_DOUBLE:
         mrb_ary_push(mrb, cols, mrb_float_value(mrb, *(double*)results[i].buffer));
         break;
-    	case MYSQL_TYPE_BLOB:
+      case MYSQL_TYPE_MEDIUM_BLOB:
+      case MYSQL_TYPE_LONG_BLOB:
+      case MYSQL_TYPE_BLOB:
+      case MYSQL_TYPE_BIT:
         mrb_ary_push(mrb, cols, mrb_str_new(mrb, results[i].buffer, results[i].length_value));
         break;
-    	case MYSQL_TYPE_STRING:
-        mrb_ary_push(mrb, cols, mrb_str_new_cstr(mrb, results[i].buffer));
+      case MYSQL_TYPE_NEWDECIMAL:
+      case MYSQL_TYPE_VAR_STRING:
+      case MYSQL_TYPE_STRING:
+        mrb_ary_push(mrb, cols, mrb_str_new(mrb, results[i].buffer, results[i].length_value));
         break;
-    	case MYSQL_TYPE_NULL:
+      case MYSQL_TYPE_NULL:
         mrb_ary_push(mrb, cols, mrb_nil_value());
+        break;
+      case MYSQL_TYPE_TIME:
+      case MYSQL_TYPE_DATE:
+      case MYSQL_TYPE_DATETIME:
+      case MYSQL_TYPE_TIMESTAMP:
+        {
+          MYSQL_TIME ts;
+          struct RClass* _class_time;
+          mrb_value args[7];
+          memcpy(&ts, results[i].buffer, results[i].length_value);
+          _class_time = mrb_class_get(mrb, "Time");
+          args[0] = mrb_fixnum_value(ts.year);
+          args[1] = mrb_fixnum_value(ts.month);
+          args[2] = mrb_fixnum_value(ts.day);
+          args[3] = mrb_fixnum_value(ts.hour);
+          args[4] = mrb_fixnum_value(ts.minute);
+          args[5] = mrb_fixnum_value(ts.second);
+          mrb_ary_push(mrb, cols, mrb_class_new_instance(mrb, 7, args, _class_time));
+        }
         break;
       default:
         mrb_ary_push(mrb, cols, mrb_fixnum_value(*(long*)results[i].buffer));
