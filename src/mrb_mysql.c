@@ -191,12 +191,12 @@ bind_to_cols(mrb_state* mrb, mrb_value cols, MYSQL_RES* res, MYSQL_FIELD* flds, 
       case MYSQL_TYPE_LONG_BLOB:
       case MYSQL_TYPE_BLOB:
       case MYSQL_TYPE_BIT:
-        mrb_ary_push(mrb, cols, mrb_str_new(mrb, results[i].buffer, results[i].length_value));
+        mrb_ary_push(mrb, cols, mrb_str_new(mrb, results[i].buffer, *results[i].length));
         break;
       case MYSQL_TYPE_NEWDECIMAL:
       case MYSQL_TYPE_VAR_STRING:
       case MYSQL_TYPE_STRING:
-        mrb_ary_push(mrb, cols, mrb_str_new(mrb, results[i].buffer, results[i].length_value));
+        mrb_ary_push(mrb, cols, mrb_str_new(mrb, results[i].buffer, *results[i].length));
         break;
       case MYSQL_TYPE_NULL:
         mrb_ary_push(mrb, cols, mrb_nil_value());
@@ -315,8 +315,8 @@ mrb_mysql_database_execute(mrb_state *mrb, mrb_value self) {
     case MYSQL_TYPE_NEWDECIMAL:
     case MYSQL_TYPE_VAR_STRING:
     case MYSQL_TYPE_STRING:
-      results[i].buffer = malloc(flds[i].max_length);
-      results[i].buffer_length = flds[i].max_length;
+      results[i].buffer = malloc(flds[i].length);
+      results[i].buffer_length = flds[i].length;
       break;
     case MYSQL_TYPE_TIME:
     case MYSQL_TYPE_DATE:
@@ -331,7 +331,7 @@ mrb_mysql_database_execute(mrb_state *mrb, mrb_value self) {
       break;
     }
     memset(results[i].buffer, 0, results[i].buffer_length);
-    results[i].length = 0;
+    results[i].length = &results[i].length_value;
     results[i].is_null = &results[i].is_null_value;
   }
   if (mysql_stmt_bind_result(stmt, results) != 0) {
@@ -350,7 +350,6 @@ mrb_mysql_database_execute(mrb_state *mrb, mrb_value self) {
     memset(rs, 0, sizeof(mrb_mysql_resultset));
     rs->mrb = mrb;
     rs->stmt = stmt;
-    mysql_use_result(db->db);
     rs->res = res;
     rs->flds = flds;
     rs->bind = results;
