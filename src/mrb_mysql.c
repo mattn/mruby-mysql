@@ -603,22 +603,22 @@ mrb_mruby_mysql_gem_init(mrb_state* mrb) {
   _class_mysql = mrb_define_module(mrb, "MySQL");
 
   _class_mysql_database = mrb_define_class_under(mrb, _class_mysql, "Database", mrb->object_class);
-  mrb_define_method(mrb, _class_mysql_database, "initialize", mrb_mysql_database_init, ARGS_OPT(1));
-  mrb_define_method(mrb, _class_mysql_database, "execute", mrb_mysql_database_execute, ARGS_ANY());
-  mrb_define_method(mrb, _class_mysql_database, "execute_batch", mrb_mysql_database_execute_batch, ARGS_ANY());
-  mrb_define_method(mrb, _class_mysql_database, "close", mrb_mysql_database_close, ARGS_NONE());
-  mrb_define_method(mrb, _class_mysql_database, "last_insert_rowid", mrb_mysql_database_last_insert_rowid, ARGS_NONE());
-  mrb_define_method(mrb, _class_mysql_database, "changes", mrb_mysql_database_changes, ARGS_NONE());
-  mrb_define_method(mrb, _class_mysql_database, "transaction", mrb_mysql_database_transaction, ARGS_NONE());
-  mrb_define_method(mrb, _class_mysql_database, "commit", mrb_mysql_database_commit, ARGS_NONE());
-  mrb_define_method(mrb, _class_mysql_database, "rollback", mrb_mysql_database_rollback, ARGS_NONE());
+  mrb_define_method(mrb, _class_mysql_database, "initialize", mrb_mysql_database_init, MRB_ARGS_OPT(1));
+  mrb_define_method(mrb, _class_mysql_database, "execute", mrb_mysql_database_execute, MRB_ARGS_ANY());
+  mrb_define_method(mrb, _class_mysql_database, "execute_batch", mrb_mysql_database_execute_batch, MRB_ARGS_ANY());
+  mrb_define_method(mrb, _class_mysql_database, "close", mrb_mysql_database_close, MRB_ARGS_NONE());
+  mrb_define_method(mrb, _class_mysql_database, "last_insert_rowid", mrb_mysql_database_last_insert_rowid, MRB_ARGS_NONE());
+  mrb_define_method(mrb, _class_mysql_database, "changes", mrb_mysql_database_changes, MRB_ARGS_NONE());
+  mrb_define_method(mrb, _class_mysql_database, "transaction", mrb_mysql_database_transaction, MRB_ARGS_NONE());
+  mrb_define_method(mrb, _class_mysql_database, "commit", mrb_mysql_database_commit, MRB_ARGS_NONE());
+  mrb_define_method(mrb, _class_mysql_database, "rollback", mrb_mysql_database_rollback, MRB_ARGS_NONE());
   ARENA_RESTORE;
 
   _class_mysql_resultset = mrb_define_class_under(mrb, _class_mysql, "ResultSet", mrb->object_class);
-  mrb_define_method(mrb, _class_mysql_resultset, "next", mrb_mysql_resultset_next, ARGS_NONE());
-  mrb_define_method(mrb, _class_mysql_resultset, "close", mrb_mysql_resultset_close, ARGS_NONE());
-  mrb_define_method(mrb, _class_mysql_resultset, "fields", mrb_mysql_resultset_fields, ARGS_NONE());
-  mrb_define_method(mrb, _class_mysql_resultset, "eof?", mrb_mysql_resultset_eof, ARGS_NONE());
+  mrb_define_method(mrb, _class_mysql_resultset, "next", mrb_mysql_resultset_next, MRB_ARGS_NONE());
+  mrb_define_method(mrb, _class_mysql_resultset, "close", mrb_mysql_resultset_close, MRB_ARGS_NONE());
+  mrb_define_method(mrb, _class_mysql_resultset, "fields", mrb_mysql_resultset_fields, MRB_ARGS_NONE());
+  mrb_define_method(mrb, _class_mysql_resultset, "eof?", mrb_mysql_resultset_eof, MRB_ARGS_NONE());
   ARENA_RESTORE;
 }
 
