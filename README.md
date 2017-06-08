@@ -21,6 +21,7 @@ db = MySQL::Database.new('db_host', 'db_user', 'password', 'db_name')
 you must supply 4 parameters.
 
 ## Usage
+
 ### execute_batch
 
 ```ruby
@@ -72,11 +73,12 @@ db.execute_batch('insert into foo(id, text) values(?, ?)', 2, 'baz')
 db.commit
 ```
 
-## Contributing
-TBD
-
 # License
 
 This project is under the MIT License:
 
 * http://www.opensource.org/licenses/mit-license.php
+
+# Author
+
+Yasuhiro Matsumoto (a.k.a. mattn)
