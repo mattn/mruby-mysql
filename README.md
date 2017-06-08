@@ -75,5 +75,8 @@ db.commit
 ## Contributing
 TBD
 
-## License
-TBD
+# License
+
+This project is under the MIT License:
+
+* http://www.opensource.org/licenses/mit-license.php
